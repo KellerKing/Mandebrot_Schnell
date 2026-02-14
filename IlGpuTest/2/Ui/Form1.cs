@@ -11,11 +11,12 @@ namespace IlGpuTest._2.Ui
         private readonly PictureBox m_PictureBox;
         private Tuple<double, double> m_CurrentSkalaX;
         private Tuple<double, double> m_CurrentSkalaY;
-        private readonly int m_MaxIterations = 500_000;
+        private readonly int m_MaxIterations = 20;
         private bool m_IsCalculating = false;
 
         private bool m_IsDrag;
         private Tuple<double, double>? m_PositionMausLast;
+        private Point? m_PositionMausLastPixel;
 
         public Form1(ICalculator calculator)
         {
@@ -26,10 +27,10 @@ namespace IlGpuTest._2.Ui
 
         public void ShowMandelbrot()
         {
-            m_CurrentSkalaX = new Tuple<double, double>(-0.819444732921077, -0.8194401354344543);
-            m_CurrentSkalaY = new Tuple<double, double>(-0.1731612926638697, -0.17315761467457164);
-            //m_CurrentSkalaX = new Tuple<double, double>(-2, 1);
-            //m_CurrentSkalaY = new Tuple<double, double>(-1.2, 1.2);
+            //m_CurrentSkalaX = new Tuple<double, double>(-0.819444732921077, -0.8194401354344543);
+            //m_CurrentSkalaY = new Tuple<double, double>(-0.1731612926638697, -0.17315761467457164);
+            m_CurrentSkalaX = new Tuple<double, double>(-2, 1);
+            m_CurrentSkalaY = new Tuple<double, double>(-1.2, 1.2);
 
             //var width = 17321;
             //var height = 11547;
@@ -56,17 +57,8 @@ namespace IlGpuTest._2.Ui
             ShowDialog();
         }
 
-        private void M_PictureBox_MouseLeave(object? sender, EventArgs e)
-        {
-            m_PositionMausLast = null;
-            m_IsDrag = false;
-        }
-
-        private void PictureBox_MouseUp(object? sender, MouseEventArgs e)
-        {
-            m_PositionMausLast = null;
-            m_IsDrag = false;
-        }
+        private void M_PictureBox_MouseLeave(object? sender, EventArgs e) => ResetDrag();
+        private void PictureBox_MouseUp(object? sender, MouseEventArgs e) => ResetDrag();
 
         private void PictureBox_MouseDown(object? sender, MouseEventArgs e)
         {
@@ -74,24 +66,42 @@ namespace IlGpuTest._2.Ui
             m_PositionMausLast = MausImKoordinatenSystem(e.X, e.Y, m_CurrentSkalaX, m_CurrentSkalaY, Width, Height);
         }
 
+        private void ResetDrag()
+        {
+            m_PositionMausLast = null;
+            m_IsDrag = false;
+            m_PositionMausLastPixel = null;
+        }
+
 
         private void PictureBox_MouseMove(object? sender, MouseEventArgs e)
         {
             if (!m_IsDrag) return;
 
-            if (m_PositionMausLast == null )
+            if (m_PositionMausLast == null || !m_PositionMausLastPixel.HasValue)
             {
                 m_PositionMausLast = MausImKoordinatenSystem(e.X, e.Y, m_CurrentSkalaX, m_CurrentSkalaY, Width, Height);
+                m_PositionMausLastPixel = e.Location;
                 return;
             }
 
             var (mouseReX, mouseImY) = MausImKoordinatenSystem(e.X, e.Y, m_CurrentSkalaX, m_CurrentSkalaY, Width, Height);
+            
+            var prozentAbweichungX = Math.Abs(Convert.ToDouble(m_PositionMausLastPixel.Value.X - e.X)) / Width * 100.0;
+            var prozentAbweichungY = Math.Abs(Convert.ToDouble(m_PositionMausLastPixel.Value.Y - e.Y)) / Height * 100.0;
 
-            var prozentAbweichungX = Math.Abs(m_PositionMausLast.Item1 - mouseReX) / m_PositionMausLast.Item1 * 100;
-            var prozentAbweichungY = Math.Abs(m_PositionMausLast.Item2 - mouseImY) / m_PositionMausLast.Item2 * 100;
+            //var prozentAbweichungX = Math.Abs(m_PositionMausLast.Item1 - mouseReX) / m_PositionMausLast.Item1 * 100;
+            //var prozentAbweichungY = Math.Abs(m_PositionMausLast.Item2 - mouseImY) / m_PositionMausLast.Item2 * 100;
 
-            if (Math.Abs(prozentAbweichungX) <= 1 && Math.Abs(prozentAbweichungY) <= 1)
+            //Console.WriteLine($"Old: {m_PositionMausLastPixel.Value.X} / {m_PositionMausLastPixel.Value.Y}");
+            //Console.WriteLine($"NEw: {e.X} / {e.Y}");
+            //Console.WriteLine($"{prozentAbweichungX}% / {prozentAbweichungY}%");
+            //Console.WriteLine($"{Math.Abs(m_PositionMausLastPixel.Value.X - e.X)} / {m_PositionMausLastPixel.Value.Y - e.Y}");
+
+            if (Math.Abs(prozentAbweichungX) <= 0.5 && Math.Abs(prozentAbweichungY) <= 0.5)
                 return;
+            
+            Console.WriteLine($"{prozentAbweichungX}% / {prozentAbweichungY}%");
 
             var isNachRechts = m_PositionMausLast.Item1 < mouseReX;
             var isNachUnten = m_PositionMausLast.Item2 < mouseImY;
@@ -101,8 +111,6 @@ namespace IlGpuTest._2.Ui
 
             var offsetY = Math.Abs(m_PositionMausLast.Item2 - mouseImY);
             if (!isNachUnten) offsetY *= -1;
-
-            Console.WriteLine($"{prozentAbweichungX}% - {prozentAbweichungY}%");
 
             m_CurrentSkalaX = new Tuple<double, double>(
                 m_CurrentSkalaX.Item1 - offsetX,
@@ -121,6 +129,7 @@ namespace IlGpuTest._2.Ui
             m_IsCalculating = false;
 
             m_PositionMausLast = MausImKoordinatenSystem(e.X, e.Y, m_CurrentSkalaX, m_CurrentSkalaY, Width, Height);
+            m_PositionMausLastPixel = e.Location;
         }
 
         private Bitmap DrawMandelbrot(Tuple<double, double> skalaX, Tuple<double, double> skalaY, int width, int height, int maxIterations)
