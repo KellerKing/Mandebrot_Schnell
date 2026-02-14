@@ -7,5 +7,10 @@ namespace IlGpuTest._2.Calculation
         {
             throw new NotImplementedException();
         }
+
+        public void Calculate(Tuple<double, double> skalaX, Tuple<double, double> skalaY, int maxIterations, int[] output, int width, int height)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
