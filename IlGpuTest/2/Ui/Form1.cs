@@ -11,7 +11,7 @@ namespace IlGpuTest._2.Ui
         private readonly PictureBox m_PictureBox;
         private Tuple<double, double> m_CurrentSkalaX;
         private Tuple<double, double> m_CurrentSkalaY;
-        private readonly int m_MaxIterations = 20;
+        private readonly int m_MaxIterations = 5;
         private bool m_IsCalculating = false;
 
         private bool m_IsDrag;
@@ -41,12 +41,11 @@ namespace IlGpuTest._2.Ui
             Width = width;
             Height = height;
 
-            var bitmap = DrawMandelbrot(m_CurrentSkalaX, m_CurrentSkalaY, width, height, m_MaxIterations);
+            Update(m_CurrentSkalaX, m_CurrentSkalaY, width, height, m_MaxIterations);
             //bitmap.Save("mandelbrot.png", ImageFormat.Png);
             //return;
             Controls.Add(m_PictureBox);
             m_PictureBox.Dock = DockStyle.Fill;
-            m_PictureBox.Image = bitmap;
             m_PictureBox.SizeMode = PictureBoxSizeMode.AutoSize;
             m_PictureBox.MouseWheel += Picturebox_MouseWheel;
             m_PictureBox.MouseDown += PictureBox_MouseDown;
@@ -122,12 +121,9 @@ namespace IlGpuTest._2.Ui
                 m_CurrentSkalaY.Item2 - offsetY
             );
 
-            var bitmap = DrawMandelbrot(m_CurrentSkalaX, m_CurrentSkalaY, Width, Height, m_MaxIterations);
+            Update(m_CurrentSkalaX, m_CurrentSkalaY, Width, Height, m_MaxIterations);
     
-            m_PictureBox.Image.Dispose();
-            m_PictureBox.Image = bitmap;
             m_IsCalculating = false;
-
             m_PositionMausLast = MausImKoordinatenSystem(e.X, e.Y, m_CurrentSkalaX, m_CurrentSkalaY, Width, Height);
             m_PositionMausLastPixel = e.Location;
         }
@@ -213,11 +209,17 @@ namespace IlGpuTest._2.Ui
 
             m_IsCalculating = true;
 
-            var bitmap = DrawMandelbrot(m_CurrentSkalaX, m_CurrentSkalaY, Width, Height, m_MaxIterations);
+            Update(m_CurrentSkalaX, m_CurrentSkalaY, Width, Height, m_MaxIterations);
+        }
 
-            m_PictureBox.Image.Dispose();
+        private void Update(Tuple<double, double> skalaX, Tuple<double, double> skalaY, int width, int height, int iterationenMaximal)
+        {
+            var bitmap = DrawMandelbrot(skalaX, skalaY, width, height, iterationenMaximal);
+
+            m_PictureBox.Image?.Dispose();
             m_PictureBox.Image = bitmap;
             m_IsCalculating = false;
+
         }
 
         private static Tuple<double, double> MausImKoordinatenSystem(int xMaus, int yMaus, Tuple<double, double> skalaX, Tuple<double, double> skalaY, int width, int height)
