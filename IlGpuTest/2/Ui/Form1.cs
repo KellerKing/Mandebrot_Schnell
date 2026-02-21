@@ -18,15 +18,40 @@ namespace IlGpuTest._2.Ui
         private Tuple<double, double>? m_PositionMausLast;
         private Point? m_PositionMausLastPixel;
 
+        private readonly Queue<CalculationQueueElement> m_CalculationQueue;
+        private readonly Queue<Bitmap> m_RenderQueue;
+
         public Form1(ICalculator calculator)
         {
             m_Calculator = calculator;
             m_PictureBox = new PictureBox();
+            m_CalculationQueue = new Queue<CalculationQueueElement>();
+            m_RenderQueue = new Queue<Bitmap>();
             InitializeComponent();
         }
 
         public void ShowMandelbrot()
         {
+
+            //var old = DateTime.Now;
+            //var gameThread = new Thread(() =>
+            //{
+            //    while (true)
+            //    {
+            //        if (!m_CalculationQueue.TryDequeue(out var calculationElement))
+            //        {
+            //            Thread.Sleep(20);
+            //            continue;
+            //        }
+
+            //        var bitmap = DrawMandelbrot(m_CurrentSkalaX, m_CurrentSkalaY, Width, Height, m_MaxIterations);
+            //        m_RenderQueue.Enqueue(bitmap);
+            //    }
+            //});
+
+
+            //gameThread.Start();
+
             //m_CurrentSkalaX = new Tuple<double, double>(-0.819444732921077, -0.8194401354344543);
             //m_CurrentSkalaY = new Tuple<double, double>(-0.1731612926638697, -0.17315761467457164);
             m_CurrentSkalaX = new Tuple<double, double>(-2, 1);
@@ -51,12 +76,12 @@ namespace IlGpuTest._2.Ui
             m_PictureBox.MouseDown += PictureBox_MouseDown;
             m_PictureBox.MouseUp += PictureBox_MouseUp;
             m_PictureBox.MouseMove += PictureBox_MouseMove;
-            m_PictureBox.MouseLeave += M_PictureBox_MouseLeave; ;
+            m_PictureBox.MouseLeave += PictureBox_MouseLeave;
 
             ShowDialog();
         }
 
-        private void M_PictureBox_MouseLeave(object? sender, EventArgs e) => ResetDrag();
+        private void PictureBox_MouseLeave(object? sender, EventArgs e) => ResetDrag();
         private void PictureBox_MouseUp(object? sender, MouseEventArgs e) => ResetDrag();
 
         private void PictureBox_MouseDown(object? sender, MouseEventArgs e)
@@ -73,7 +98,7 @@ namespace IlGpuTest._2.Ui
         }
 
 
-        private void PictureBox_MouseMove(object? sender, MouseEventArgs e)
+        private async void PictureBox_MouseMove(object? sender, MouseEventArgs e)
         {
             if (!m_IsDrag) return;
 
@@ -85,7 +110,7 @@ namespace IlGpuTest._2.Ui
             }
 
             var (mouseReX, mouseImY) = MausImKoordinatenSystem(e.X, e.Y, m_CurrentSkalaX, m_CurrentSkalaY, Width, Height);
-            
+
             var prozentAbweichungX = Math.Abs(Convert.ToDouble(m_PositionMausLastPixel.Value.X - e.X)) / Width * 100.0;
             var prozentAbweichungY = Math.Abs(Convert.ToDouble(m_PositionMausLastPixel.Value.Y - e.Y)) / Height * 100.0;
 
@@ -99,7 +124,7 @@ namespace IlGpuTest._2.Ui
 
             if (Math.Abs(prozentAbweichungX) <= 0.5 && Math.Abs(prozentAbweichungY) <= 0.5)
                 return;
-            
+
             Console.WriteLine($"{prozentAbweichungX}% / {prozentAbweichungY}%");
 
             var isNachRechts = m_PositionMausLast.Item1 < mouseReX;
@@ -113,7 +138,7 @@ namespace IlGpuTest._2.Ui
 
             m_CurrentSkalaX = new Tuple<double, double>(
                 m_CurrentSkalaX.Item1 - offsetX,
-                m_CurrentSkalaX.Item2  - offsetX
+                m_CurrentSkalaX.Item2 - offsetX
             );
 
             m_CurrentSkalaY = new Tuple<double, double>(
@@ -122,7 +147,7 @@ namespace IlGpuTest._2.Ui
             );
 
             Update(m_CurrentSkalaX, m_CurrentSkalaY, Width, Height, m_MaxIterations);
-    
+
             m_IsCalculating = false;
             m_PositionMausLast = MausImKoordinatenSystem(e.X, e.Y, m_CurrentSkalaX, m_CurrentSkalaY, Width, Height);
             m_PositionMausLastPixel = e.Location;
@@ -216,10 +241,16 @@ namespace IlGpuTest._2.Ui
         {
             var bitmap = DrawMandelbrot(skalaX, skalaY, width, height, iterationenMaximal);
 
+            //SynchronizationContext.Current.Post(() =>
+            //{
+            //    m_PictureBox.Image?.Dispose();
+            //    m_PictureBox.Image = bitmap;
+            //    m_IsCalculating = false;
+
+            //});
             m_PictureBox.Image?.Dispose();
             m_PictureBox.Image = bitmap;
             m_IsCalculating = false;
-
         }
 
         private static Tuple<double, double> MausImKoordinatenSystem(int xMaus, int yMaus, Tuple<double, double> skalaX, Tuple<double, double> skalaY, int width, int height)

@@ -17,9 +17,12 @@ using System.Diagnostics;
 //Console.ReadLine();
 
 
-var ui = new Form1(new CalculatorNaiv());
+using var fenster = new OpenTkUi(1280, 720, "Mandelbort");
+fenster.Run();
 
-ui.ShowMandelbrot();
+//var ui = new Form1(new CalculatorNaiv());
+
+//ui.ShowMandelbrot();
 
 
 
